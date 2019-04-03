@@ -50,6 +50,7 @@ jobs:
       containerregistrytype: Container Registry
       command: build
       dockerFile: dockerfile-ci
+      imageName: $(Build.Repository.Name):$(Build.BuildNumber)
       arguments: >-
         --build-arg SONAR_TOKEN=$(SonarCloud.Token)
         --build-arg SONAR_GITOPTIONS="$(SonarCloud.GitOptions)"
