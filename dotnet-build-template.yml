@@ -38,6 +38,7 @@ jobs:
       fi
       echo "$(Build.Repository.Name):$(Build.BuildId)" > $(Agent.TempDirectory)/image-names
       echo "$(Build.Repository.Name):${TAG}" >> $(Agent.TempDirectory)/image-names
+      cat ${AGENT_TEMPDIRECTORY}/image-names
       echo "Setting tag \"${TAG}\"."
       echo "Setting extra Sonar Scanner options \"${GITOPTIONS}\"."
       echo "##vso[task.setvariable variable=Docker.Tag]${TAG}"
@@ -68,8 +69,11 @@ jobs:
       pushMultipleImages: true
       imageNamesPath: $(Agent.TempDirectory)/image-names
 
+  - bash: |
+      cp -v dockerup.yml $(System.)
+
   - task: PublishBuildArtifacts@1
-    displayName: 'Publish artifact compose file'
+    displayName: Publish artifact compose file
     inputs:
       pathtoPublish: dockerup.yml
       artifactName: compose
