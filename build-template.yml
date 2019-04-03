@@ -1,107 +1,106 @@
 jobs:
+- job: build
 
-  - job: build
+  pool:
+    name: Default
 
-    pool:
-      name: Default
+  steps:
+  - checkout: self
+    clean: true
 
-    steps:
-      - checkout: self
-        clean: true
+  - bash: |
+      set -e
+      if [ -z "${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER}" ]; then
+        echo "Build is for branch \"${BUILD_SOURCEBRANCHNAME}\"."
+        if [ "${BUILD_SOURCEBRANCHNAME}" == "master" ]; then
+          TAG=latest
+        elif [ "${BUILD_SOURCEBRANCHNAME}" == "lesser" ]; then
+          TAG=edge
+        elif [ "${BUILD_SOURCEBRANCHNAME}" == "broker" ]; then
+          TAG=dev
+        else
+          TAG="${BUILD_SOURCEBRANCHNAME}"
+        fi
+        GITOPTIONS="/d:sonar.branch.name=${BUILD_SOURCEBRANCHNAME}"
+      else
+        echo "Build is for PR ${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER}, \
+          branch \"${SYSTEM_PULLREQUEST_SOURCEBRANCH}.\"."
+        TAG=$(echo "${SYSTEM_PULLREQUEST_SOURCEBRANCH}" | sed 's/[^0-9].*$//')
+        if [ -z "$TAG" ]; then
+          echo "ERROR Bad branch name." >&2
+          exit 1
+        fi
+        GITOPTIONS="/d:sonar.pullrequest.key=${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER} \
+          /d:sonar.pullrequest.provider=github \
+          /d:sonar.pullrequest.base=${SYSTEM_PULLREQUEST_TARGETBRANCH} \
+          /d:sonar.pullrequest.branch=${SYSTEM_PULLREQUEST_SOURCEBRANCH} \
+          /d:sonar.pullrequest.github.repository=${BUILD_REPOSITORY_NAME}"
+      fi
+      echo "$(Build.Repository.Name):$(Build.BuildId)" > $(Agent.TempDirectory)/image-names
+      echo "$(Build.Repository.Name):${TAG}" >> $(Agent.TempDirectory)/image-names
+      echo "Setting tag \"${TAG}\"."
+      echo "Setting extra Sonar Scanner options \"${GITOPTIONS}\"."
+      echo "##vso[task.setvariable variable=Docker.Tag]${TAG}"
+      echo "##vso[task.setvariable variable=SonarCloud.GitOptions]${GITOPTIONS}"
+    displayName: Set Docker image tag and Sonar Scanner options
 
-      - bash: |
-          set -e
-          if [ -z "${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER}" ]; then
-            echo "Build is for branch \"${BUILD_SOURCEBRANCHNAME}\"."
-            if [ "${BUILD_SOURCEBRANCHNAME}" == "master" ]; then
-              TAG=latest
-            elif [ "${BUILD_SOURCEBRANCHNAME}" == "lesser" ]; then
-              TAG=edge
-            elif [ "${BUILD_SOURCEBRANCHNAME}" == "broker" ]; then
-              TAG=dev
-            else
-              TAG="${BUILD_SOURCEBRANCHNAME}"
-            fi
-            GITOPTIONS="/d:sonar.branch.name=${BUILD_SOURCEBRANCHNAME}"
-          else
-            echo "Build is for PR ${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER}, \
-              branch \"${SYSTEM_PULLREQUEST_SOURCEBRANCH}.\"."
-            TAG=$(echo "${SYSTEM_PULLREQUEST_SOURCEBRANCH}" | sed 's/[^0-9].*$//')
-            if [ -z "$TAG" ]; then
-              echo "ERROR Bad branch name." >&2
-              exit 1
-            fi
-            GITOPTIONS="/d:sonar.pullrequest.key=${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER} \
-              /d:sonar.pullrequest.provider=github \
-              /d:sonar.pullrequest.base=${SYSTEM_PULLREQUEST_TARGETBRANCH} \
-              /d:sonar.pullrequest.branch=${SYSTEM_PULLREQUEST_SOURCEBRANCH} \
-              /d:sonar.pullrequest.github.repository=${BUILD_REPOSITORY_NAME}"
-          fi
-          echo "$(Build.Repository.Name):$(Build.BuildId)" > $(Agent.TempDirectory)/image-names
-          echo "$(Build.Repository.Name):${TAG}" >> $(Agent.TempDirectory)/image-names
-          echo "Setting tag \"${TAG}\"."
-          echo "Setting extra Sonar Scanner options \"${GITOPTIONS}\"."
-          echo "##vso[task.setvariable variable=Docker.Tag]${TAG}"
-          echo "##vso[task.setvariable variable=SonarCloud.GitOptions]${GITOPTIONS}"
-        displayName: Set Docker image tag and Sonar Scanner options
+  - task: Docker@1
+    displayName: Build image
+    inputs:
+      containerregistrytype: Container Registry
+      command: build
+      dockerFile: dockerfile-ci
+      arguments: >-
+        --build-arg SONAR_TOKEN=$(SonarCloud.Token)
+        --build-arg SONAR_GITOPTIONS="$(SonarCloud.GitOptions)"
+        -t $(Build.Repository.Name):$(Docker.Tag)
 
-      - task: Docker@1
-        displayName: Build image
-        inputs:
-          containerregistrytype: Container Registry
-          command: build
-          dockerFile: dockerfile-ci
-          arguments: >-
-            --build-arg SONAR_TOKEN=$(SonarCloud.Token)
-            --build-arg SONAR_GITOPTIONS="$(SonarCloud.GitOptions)"
-            -t $(Build.Repository.Name):$(Docker.Tag)
+  - task: Docker@1
+    displayName: Push image
+    condition: >
+      and(succeeded(),
+        eq(variables['Build.SourceBranch'], 'refs/heads/broker'),
+        ne(variables['Build.Reason'], 'PullRequest'))
+    inputs:
+      containerregistrytype: Container Registry
+      dockerRegistryEndpoint: docker-revaturexyz
+      command: push
+      pushMultipleImages: true
+      imageNamesPath: $(Agent.TempDirectory)/image-names
 
-      - task: Docker@1
-        displayName: Push image
-        condition: >
-          and(succeeded(),
-            eq(variables['Build.SourceBranch'], 'refs/heads/broker'),
-            ne(variables['Build.Reason'], 'PullRequest'))
-        inputs:
-          containerregistrytype: Container Registry
-          dockerRegistryEndpoint: docker-revaturexyz
-          command: push
-          pushMultipleImages: true
-          imageNamesPath: $(Agent.TempDirectory)/image-names
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish artifact compose file'
+    inputs:
+      pathtoPublish: dockerup.yml
+      artifactName: compose
 
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish artifact compose file'
-        inputs:
-          pathtoPublish: dockerup.yml
-          artifactName: compose
+  - bash: >
+      docker run --rm -u $(id -u):$(id -g)
+      -v "$(Agent.TempDirectory)":/app/tmp
+      $(Build.Repository.Name):$(Docker.Tag)
+      sh -c 'cp -r /app/artifacts/test /app/tmp'
+    displayName: Copy test artifacts from Docker image
 
-      - bash: >
-          docker run --rm -u $(id -u):$(id -g)
-          -v "$(Agent.TempDirectory)":/app/tmp
-          $(Build.Repository.Name):$(Docker.Tag)
-          sh -c 'cp -r /app/artifacts/test /app/tmp'
-        displayName: Copy test artifacts from Docker image
+  - task: PublishTestResults@2
+    displayName: Publish test results
+    inputs:
+      testRunner: VSTest
+      testResultsFiles: '*.trx'
+      searchFolder: $(Agent.TempDirectory)/test
+      configuration: Release
 
-      - task: PublishTestResults@2
-        displayName: Publish test results
-        inputs:
-          testRunner: VSTest
-          testResultsFiles: '*.trx'
-          searchFolder: $(Agent.TempDirectory)/test
-          configuration: Release
+  - task: PublishCodeCoverageResults@1
+    displayName: Publish code coverage
+    inputs:
+      codeCoverageTool: Cobertura
+      summaryFileLocation: $(Agent.TempDirectory)/test/coverage/coverage.cobertura.xml
+      failIfCoverageEmpty: true
 
-      - task: PublishCodeCoverageResults@1
-        displayName: Publish code coverage
-        inputs:
-          codeCoverageTool: Cobertura
-          summaryFileLocation: $(Agent.TempDirectory)/test/coverage/coverage.cobertura.xml
-          failIfCoverageEmpty: true
-
-      - bash: |
-          set -e -o pipefail
-          PERCENTAGE=$(df / | grep / | awk '{ print $5}' | sed 's/%//g')
-          echo "Disk space ${PERCENTAGE}%"
-          if [ "$(df / | grep / | awk '{ print $5}' | sed 's/%//g')" -gt 90 ]; then
-            docker system prune -af --volumes
-          fi
-        displayName: Cleanup Docker data if agent disk usage >90%
+  - bash: |
+      set -e -o pipefail
+      PERCENTAGE=$(df / | grep / | awk '{ print $5}' | sed 's/%//g')
+      echo "Disk space ${PERCENTAGE}%"
+      if [ "$(df / | grep / | awk '{ print $5}' | sed 's/%//g')" -gt 90 ]; then
+        docker system prune -af --volumes
+      fi
+    displayName: Cleanup Docker data if agent disk usage >90%
