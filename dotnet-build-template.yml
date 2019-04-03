@@ -36,9 +36,8 @@ jobs:
           /d:sonar.pullrequest.branch=${SYSTEM_PULLREQUEST_SOURCEBRANCH} \
           /d:sonar.pullrequest.github.repository=${BUILD_REPOSITORY_NAME}"
       fi
-      echo "$(Build.Repository.Name):$(Build.BuildId)" > $(Agent.TempDirectory)/image-names
+      echo "$(Build.Repository.Name):$(Build.BuildNumber)" > $(Agent.TempDirectory)/image-names
       echo "$(Build.Repository.Name):${TAG}" >> $(Agent.TempDirectory)/image-names
-      cat ${AGENT_TEMPDIRECTORY}/image-names
       echo "Setting tag \"${TAG}\"."
       echo "Setting extra Sonar Scanner options \"${GITOPTIONS}\"."
       echo "##vso[task.setvariable variable=Docker.Tag]${TAG}"
@@ -68,9 +67,6 @@ jobs:
       command: push
       pushMultipleImages: true
       imageNamesPath: $(Agent.TempDirectory)/image-names
-
-  - bash: |
-      cp -v dockerup.yml $(System.)
 
   - task: PublishBuildArtifacts@1
     displayName: Publish artifact compose file
