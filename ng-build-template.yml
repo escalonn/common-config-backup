@@ -21,7 +21,7 @@ jobs:
         else
           TAG="${BUILD_SOURCEBRANCHNAME}"
         fi
-        GITOPTIONS="/d:sonar.branch.name=${BUILD_SOURCEBRANCHNAME}"
+        GITOPTIONS="-Dsonar.branch.name=${BUILD_SOURCEBRANCHNAME}"
       else
         echo "Build is for PR ${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER}, \
           branch \"${SYSTEM_PULLREQUEST_SOURCEBRANCH}.\"."
@@ -30,19 +30,17 @@ jobs:
           echo "ERROR Bad branch name." >&2
           exit 1
         fi
-        GITOPTIONS="/d:sonar.pullrequest.key=${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER} \
-          /d:sonar.pullrequest.provider=github \
-          /d:sonar.pullrequest.base=${SYSTEM_PULLREQUEST_TARGETBRANCH} \
-          /d:sonar.pullrequest.branch=${SYSTEM_PULLREQUEST_SOURCEBRANCH} \
-          /d:sonar.pullrequest.github.repository=${BUILD_REPOSITORY_NAME}"
+        GITOPTIONS="-Dsonar.pullrequest.key=${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER} \
+          -Dsonar.pullrequest.provider=github \
+          -Dsonar.pullrequest.base=${SYSTEM_PULLREQUEST_TARGETBRANCH} \
+          -Dsonar.pullrequest.branch=${SYSTEM_PULLREQUEST_SOURCEBRANCH} \
+          -Dsonar.pullrequest.github.repository=${BUILD_REPOSITORY_NAME}"
       fi
-      echo "$(Build.Repository.Name):$(Build.BuildNumber)" > $(Agent.TempDirectory)/image-names
-      echo "$(Build.Repository.Name):${TAG}" >> $(Agent.TempDirectory)/image-names
       echo "Setting tag \"${TAG}\"."
       echo "Setting extra Sonar Scanner options \"${GITOPTIONS}\"."
       echo "##vso[task.setvariable variable=Docker.Tag]${TAG}"
       echo "##vso[task.setvariable variable=SonarCloud.GitOptions]${GITOPTIONS}"
-    displayName: Set Docker image tag and Sonar Scanner options
+    displayName: Set Docker image tag and SonarQube Scanner options
 
   - task: Docker@1
     displayName: Build image
@@ -83,18 +81,23 @@ jobs:
     displayName: Copy test artifacts from Docker image
 
   - task: PublishTestResults@2
-    displayName: Publish test results
+    displayName: Publish unit test results
     inputs:
-      testRunner: VSTest
-      testResultsFiles: '*.trx'
-      searchFolder: $(Agent.TempDirectory)/test
-      configuration: Release
+      searchFolder: $(Agent.TempDirectory)/test/unit
+      testRunTitle: Unit tests
+
+  - task: PublishTestResults@2
+    displayName: Publish end-to-end test results
+    inputs:
+      searchFolder: $(Agent.TempDirectory)/test/e2e
+      testRunTitle: End-to-end tests
 
   - task: PublishCodeCoverageResults@1
     displayName: Publish code coverage
     inputs:
       codeCoverageTool: Cobertura
-      summaryFileLocation: $(Agent.TempDirectory)/test/coverage/coverage.cobertura.xml
+      summaryFileLocation: $(Agent.TempDirectory)/test/coverage/cobertura-coverage.xml
+      reportDirectory: $(Agent.TempDirectory)/test/coverage
       failIfCoverageEmpty: true
 
   - bash: |
