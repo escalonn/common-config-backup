@@ -12,11 +12,11 @@ jobs:
       set -e
       if [ -z "${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER}" ]; then
         echo "Build is for branch \"${BUILD_SOURCEBRANCHNAME}\"."
-        if [ "${BUILD_SOURCEBRANCHNAME}" == "master" ]; then
+        if [ "${BUILD_SOURCEBRANCHNAME}" = "master" ]; then
           TAG=latest
-        elif [ "${BUILD_SOURCEBRANCHNAME}" == "lesser" ]; then
+        elif [ "${BUILD_SOURCEBRANCHNAME}" = "lesser" ]; then
           TAG=edge
-        elif [ "${BUILD_SOURCEBRANCHNAME}" == "broker" ]; then
+        elif [ "${BUILD_SOURCEBRANCHNAME}" = "broker" ]; then
           TAG=dev
         else
           TAG="${BUILD_SOURCEBRANCHNAME}"
@@ -27,9 +27,15 @@ jobs:
           branch \"${SYSTEM_PULLREQUEST_SOURCEBRANCH}\", \
           targeting branch \"${SYSTEM_PULLREQUEST_TARGETBRANCH}\"."
         TAG=$(echo "${SYSTEM_PULLREQUEST_SOURCEBRANCH}" | sed 's/[^0-9].*$//')
-        if [ -z "$TAG" ]; then
-          echo "ERROR Bad branch name." >&2
-          exit 1
+        if [ "${SYSTEM_PULLREQUEST_TARGETBRANCH}" = "broker" -o \
+          "${SYSTEM_PULLREQUEST_TARGETBRANCH}" = "lesser" -o \
+          "${SYSTEM_PULLREQUEST_TARGETBRANCH}" = "master" ]; then
+          if [ -z "$TAG" ]; then
+            echo "ERROR Bad branch name." >&2
+            exit 1
+          fi
+        else
+          TAG=null
         fi
         GITOPTIONS="-Dsonar.pullrequest.key=${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER} \
           -Dsonar.pullrequest.provider=github \
