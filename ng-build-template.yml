@@ -12,31 +12,33 @@ jobs:
       set -e
       if [ -z "${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER}" ]; then
         echo "Build is for branch \"${BUILD_SOURCEBRANCHNAME}\"."
-        if [ "${BUILD_SOURCEBRANCHNAME}" = "master" ]; then
+        case "${BUILD_SOURCEBRANCHNAME}" in master)
           TAG=latest
-        elif [ "${BUILD_SOURCEBRANCHNAME}" = "lesser" ]; then
+        ;;
+        lesser)
           TAG=edge
-        elif [ "${BUILD_SOURCEBRANCHNAME}" = "broker" ]; then
+        ;;
+        broker)
           TAG=dev
-        else
-          TAG="${BUILD_SOURCEBRANCHNAME}"
+        *)
+          TAG=null
         fi
+        esac
         GITOPTIONS="-Dsonar.branch.name=${BUILD_SOURCEBRANCHNAME}"
       else
-        echo "Build is for PR ${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER}, \
-          branch \"${SYSTEM_PULLREQUEST_SOURCEBRANCH}\", \
-          targeting branch \"${SYSTEM_PULLREQUEST_TARGETBRANCH}\"."
+        echo "Build is for PR ${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER}"
+        echo "PR source branch is \"${SYSTEM_PULLREQUEST_SOURCEBRANCH}\""
+        echo "PR target branch is \"${SYSTEM_PULLREQUEST_TARGETBRANCH}\""
         TAG=$(echo "${SYSTEM_PULLREQUEST_SOURCEBRANCH}" | sed 's/[^0-9].*$//')
-        if [ "${SYSTEM_PULLREQUEST_TARGETBRANCH}" = "broker" -o \
-          "${SYSTEM_PULLREQUEST_TARGETBRANCH}" = "lesser" -o \
-          "${SYSTEM_PULLREQUEST_TARGETBRANCH}" = "master" ]; then
+        case "${SYSTEM_PULLREQUEST_TARGETBRANCH}" in broker|lesser|master)
           if [ -z "$TAG" ]; then
             echo "ERROR Bad branch name." >&2
             exit 1
           fi
-        else
+          ;;
+        *)
           TAG=null
-        fi
+          ;;
         GITOPTIONS="-Dsonar.pullrequest.key=${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER} \
           -Dsonar.pullrequest.provider=github \
           -Dsonar.pullrequest.base=${SYSTEM_PULLREQUEST_TARGETBRANCH} \
