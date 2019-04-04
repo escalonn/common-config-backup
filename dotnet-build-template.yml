@@ -24,9 +24,10 @@ jobs:
         GITOPTIONS="/d:sonar.branch.name=${BUILD_SOURCEBRANCHNAME}"
       else
         echo "Build is for PR ${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER}, \
-          branch \"${SYSTEM_PULLREQUEST_SOURCEBRANCH}.\"."
+          branch \"${SYSTEM_PULLREQUEST_SOURCEBRANCH}\", \
+          targeting branch \"${SYSTEM_PULLREQUEST_TARGETBRANCH}\"."
         TAG=$(echo "${SYSTEM_PULLREQUEST_SOURCEBRANCH}" | sed 's/[^0-9].*$//')
-        if [ ${SYSTEM_PULLREQUEST_TARGETBRANCH} == "broker" ]; then
+        if [ "${SYSTEM_PULLREQUEST_TARGETBRANCH}" == "broker" ]; then
           TAG=null
         fi
         if [ -z "$TAG" ]; then

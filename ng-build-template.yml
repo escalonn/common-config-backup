@@ -24,7 +24,8 @@ jobs:
         GITOPTIONS="-Dsonar.branch.name=${BUILD_SOURCEBRANCHNAME}"
       else
         echo "Build is for PR ${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER}, \
-          branch \"${SYSTEM_PULLREQUEST_SOURCEBRANCH}.\"."
+          branch \"${SYSTEM_PULLREQUEST_SOURCEBRANCH}\", \
+          targeting branch \"${SYSTEM_PULLREQUEST_TARGETBRANCH}\"."
         TAG=$(echo "${SYSTEM_PULLREQUEST_SOURCEBRANCH}" | sed 's/[^0-9].*$//')
         if [ -z "$TAG" ]; then
           echo "ERROR Bad branch name." >&2
