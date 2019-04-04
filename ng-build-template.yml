@@ -36,6 +36,8 @@ jobs:
           -Dsonar.pullrequest.branch=${SYSTEM_PULLREQUEST_SOURCEBRANCH} \
           -Dsonar.pullrequest.github.repository=${BUILD_REPOSITORY_NAME}"
       fi
+      echo "$(Build.Repository.Name):$(Build.BuildNumber)" > $(Agent.TempDirectory)/image-names
+      echo "$(Build.Repository.Name):${TAG}" >> $(Agent.TempDirectory)/image-names
       echo "Setting tag \"${TAG}\"."
       echo "Setting extra Sonar Scanner options \"${GITOPTIONS}\"."
       echo "##vso[task.setvariable variable=Docker.Tag]${TAG}"
