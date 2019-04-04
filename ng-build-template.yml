@@ -33,6 +33,7 @@ jobs:
           ;;
           *)
             TAG=null
+        esac
         GITOPTIONS="-Dsonar.pullrequest.key=${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER} \
           -Dsonar.pullrequest.provider=github \
           -Dsonar.pullrequest.base=${SYSTEM_PULLREQUEST_TARGETBRANCH} \
