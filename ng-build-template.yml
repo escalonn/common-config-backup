@@ -18,7 +18,6 @@ jobs:
           broker) TAG=dev;;
           *) TAG=null
         esac
-        fi
         GITOPTIONS="-Dsonar.branch.name=${BUILD_SOURCEBRANCHNAME}"
       else
         echo "Build is for PR ${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER}"
