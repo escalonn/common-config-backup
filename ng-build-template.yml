@@ -12,33 +12,28 @@ jobs:
       set -e
       if [ -z "${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER}" ]; then
         echo "Build is for branch \"${BUILD_SOURCEBRANCHNAME}\"."
-        case "${BUILD_SOURCEBRANCHNAME}" in master)
-          TAG=latest
-        ;;
-        lesser)
-          TAG=edge
-        ;;
-        broker)
-          TAG=dev
-        *)
-          TAG=null
-        fi
+        case "${BUILD_SOURCEBRANCHNAME}" in
+          master) TAG=latest;;
+          lesser) TAG=edge;;
+          broker) TAG=dev;;
+          *) TAG=null
         esac
+        fi
         GITOPTIONS="-Dsonar.branch.name=${BUILD_SOURCEBRANCHNAME}"
       else
         echo "Build is for PR ${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER}"
         echo "PR source branch is \"${SYSTEM_PULLREQUEST_SOURCEBRANCH}\""
         echo "PR target branch is \"${SYSTEM_PULLREQUEST_TARGETBRANCH}\""
         TAG=$(echo "${SYSTEM_PULLREQUEST_SOURCEBRANCH}" | sed 's/[^0-9].*$//')
-        case "${SYSTEM_PULLREQUEST_TARGETBRANCH}" in broker|lesser|master)
-          if [ -z "$TAG" ]; then
-            echo "ERROR Bad branch name." >&2
-            exit 1
-          fi
+        case "${SYSTEM_PULLREQUEST_TARGETBRANCH}" in
+          broker|lesser|master)
+            if [ -z "$TAG" ]; then
+              echo "ERROR Bad branch name." >&2
+              exit 1
+            fi
           ;;
-        *)
-          TAG=null
-          ;;
+          *)
+            TAG=null
         GITOPTIONS="-Dsonar.pullrequest.key=${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER} \
           -Dsonar.pullrequest.provider=github \
           -Dsonar.pullrequest.base=${SYSTEM_PULLREQUEST_TARGETBRANCH} \
