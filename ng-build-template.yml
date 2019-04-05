@@ -1,3 +1,7 @@
+parameters:
+  Library.PackageName:
+  Library.DirectoryName:
+
 jobs:
 - job: build
 
@@ -48,6 +52,20 @@ jobs:
       echo "##vso[task.setvariable variable=SonarCloud.GitOptions]${GITOPTIONS}"
     displayName: Set Docker image tag and SonarQube Scanner options
 
+  - bash: |
+      set -e
+      PUBLISHED_VERSION=$(npm view "$(Library.PackageName)" version) || { echo "Not published yet."; exit 0; }
+      echo "Published $(Library.PackageName) version is ${PUBLISHED_VERSION}"
+      LOCAL_VERSION=$(node -p "require('./projects/$(Library.DirectoryName)/package.json').version")
+      echo "Local $(Library.PackageName) version is ${LOCAL_VERSION}"
+      npm install -s compare-versions
+      RESULT=$(node -p "require('compare-versions')('${LOCAL_VERSION}', '${PUBLISHED_VERSION}')")
+      if [ "${RESULT}" -le 0 ]; then
+        echo "ERROR NPM publish will fail. Must increment the package version." >&2
+        exit 1
+      fi
+    displayName: Check local package version is greater than published version
+
   - task: Docker@1
     displayName: Build image
     inputs:
@@ -83,8 +101,21 @@ jobs:
       docker run --rm -u $(id -u):$(id -g)
       -v "$(Agent.TempDirectory)":/app/tmp
       $(Build.Repository.Name):$(Docker.Tag)
-      sh -c 'cp -rv /app/artifacts/test /app/tmp'
-    displayName: Copy test artifacts from Docker image
+      sh -c 'cp -rv /app/artifacts/. /app/tmp &&
+        mkdir -p "/app/tmp/$(Library.DirectoryName)" &&
+        cp -rv "/app/dist/$(Library.DirectoryName)/." "/app/tmp/$(Library.DirectoryName)"'
+    displayName: Copy artifacts from Docker image
+
+  - task: Npm@1
+    displayName: Publish npm package
+    condition: >
+      and(succeeded(),
+        eq(variables['Build.SourceBranch'], 'refs/heads/broker'),
+        ne(variables['Build.Reason'], 'PullRequest'))
+    inputs:
+      command: publish
+      workingDir: $(Agent.TempDirectory)/$(Library.DirectoryName)
+      publishEndpoint: npm-revaturexyz
 
   - task: PublishTestResults@2
     displayName: Publish unit test results
@@ -104,7 +135,7 @@ jobs:
       codeCoverageTool: Cobertura
       summaryFileLocation: $(Agent.TempDirectory)/test/coverage/cobertura-coverage.xml
       reportDirectory: $(Agent.TempDirectory)/test/coverage
-      failIfCoverageEmpty: true
+      failIfCoverageEmpty: false
 
   - bash: |
       set -e -o pipefail
