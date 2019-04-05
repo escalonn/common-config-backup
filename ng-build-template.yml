@@ -54,10 +54,10 @@ jobs:
 
   - bash: |
       set -e
-      PUBLISHED_VERSION=$(npm view "$(Library.PackageName)" version) || { echo "Not published yet."; exit 0; }
-      echo "Published $(Library.PackageName) version is ${PUBLISHED_VERSION}"
-      LOCAL_VERSION=$(node -p "require('./projects/$(Library.DirectoryName)/package.json').version")
-      echo "Local $(Library.PackageName) version is ${LOCAL_VERSION}"
+      PUBLISHED_VERSION=$(npm view "${{ parameters.Library.PackageName }}" version) || { echo "Not published yet."; exit 0; }
+      echo "Published ${{ parameters.Library.PackageName }} version is ${PUBLISHED_VERSION}"
+      LOCAL_VERSION=$(node -p "require('./projects/${{ parameters.Library.DirectoryName }}/package.json').version")
+      echo "Local ${{ parameters.Library.PackageName }} version is ${LOCAL_VERSION}"
       npm install -s compare-versions
       RESULT=$(node -p "require('compare-versions')('${LOCAL_VERSION}', '${PUBLISHED_VERSION}')")
       if [ "${RESULT}" -le 0 ]; then
@@ -102,8 +102,8 @@ jobs:
       -v "$(Agent.TempDirectory)":/app/tmp
       $(Build.Repository.Name):$(Docker.Tag)
       sh -c 'cp -rv /app/artifacts/. /app/tmp &&
-        mkdir -p "/app/tmp/$(Library.DirectoryName)" &&
-        cp -rv "/app/dist/$(Library.DirectoryName)/." "/app/tmp/$(Library.DirectoryName)"'
+        mkdir -p "/app/tmp/${{ parameters.Library.DirectoryName }}" &&
+        cp -rv "/app/dist/${{ parameters.Library.DirectoryName }}/." "/app/tmp/${{ parameters.Library.DirectoryName }}"'
     displayName: Copy artifacts from Docker image
 
   - task: Npm@1
@@ -114,7 +114,7 @@ jobs:
         ne(variables['Build.Reason'], 'PullRequest'))
     inputs:
       command: publish
-      workingDir: $(Agent.TempDirectory)/$(Library.DirectoryName)
+      workingDir: $(Agent.TempDirectory)/${{ parameters.Library.DirectoryName }}
       publishEndpoint: npm-revaturexyz
 
   - task: PublishTestResults@2
