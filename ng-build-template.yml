@@ -136,7 +136,6 @@ jobs:
     inputs:
       codeCoverageTool: Cobertura
       summaryFileLocation: $(Agent.TempDirectory)/test/coverage/cobertura-coverage.xml
-      reportDirectory: $(Agent.TempDirectory)/test/coverage
       failIfCoverageEmpty: false
 
   - bash: |
