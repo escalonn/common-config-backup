@@ -99,7 +99,6 @@ jobs:
     inputs:
       codeCoverageTool: Cobertura
       summaryFileLocation: $(Agent.TempDirectory)/test/coverage/coverage.cobertura.xml
-      failIfCoverageEmpty: true
 
   - bash: |
       set -e -o pipefail
