@@ -133,6 +133,7 @@ jobs:
 
   - task: PublishCodeCoverageResults@1
     displayName: Publish code coverage
+    continueOnError: true
     inputs:
       codeCoverageTool: Cobertura
       summaryFileLocation: $(Agent.TempDirectory)/test/coverage/cobertura-coverage.xml
