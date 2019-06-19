@@ -60,6 +60,8 @@ jobs:
       echo "Published $(Library.PackageName) version is ${PUBLISHED_VERSION}"
       LOCAL_VERSION=$(node -p "JSON.parse(require('fs').readFileSync('$(System.DefaultWorkingDirectory)/projects/$(Library.DirectoryName)/package.json')).version")
       echo "Local $(Library.PackageName) version is ${LOCAL_VERSION}"
+      mkdir npm-check
+      cd npm-check
       npm install -s compare-versions
       RESULT=$(node -p "require('compare-versions')('${LOCAL_VERSION}', '${PUBLISHED_VERSION}');")
       if [ "${RESULT}" -le 0 ]; then
@@ -67,7 +69,7 @@ jobs:
         exit 1
       fi
     displayName: Check local package version is greater than published version
-    workingDirectory: $(Agent.TempDirectory)/npm-check
+    workingDirectory: $(Agent.TempDirectory)
 
   - task: Docker@1
     displayName: Build image
