@@ -58,15 +58,16 @@ jobs:
       set -e
       PUBLISHED_VERSION=$(npm view "$(Library.PackageName)" version) || { echo "Not published yet."; exit 0; }
       echo "Published $(Library.PackageName) version is ${PUBLISHED_VERSION}"
-      LOCAL_VERSION=$(node -p "require('./projects/$(Library.DirectoryName)/package.json').version")
+      LOCAL_VERSION=$(node -p "JSON.parse(require('fs').readFileSync('$(System.DefaultWorkingDirectory)/projects/$(Library.DirectoryName)/package.json')).version")
       echo "Local $(Library.PackageName) version is ${LOCAL_VERSION}"
       npm install -s compare-versions
-      RESULT=$(node -p "require('compare-versions')('${LOCAL_VERSION}', '${PUBLISHED_VERSION}')")
+      RESULT=$(node -p "require('compare-versions')('${LOCAL_VERSION}', '${PUBLISHED_VERSION}');")
       if [ "${RESULT}" -le 0 ]; then
         echo "ERROR NPM publish will fail. Must increment the package version." >&2
         exit 1
       fi
     displayName: Check local package version is greater than published version
+    workingDirectory: $(Agent.TempDirectory)/npm-check
 
   - task: Docker@1
     displayName: Build image
