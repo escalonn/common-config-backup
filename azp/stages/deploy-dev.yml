@@ -35,7 +35,7 @@ stages:
               inputs:
                 secureFile: secrets.env
 
-          - download: current
+          - task: DownloadPipelineArtifact@2
             displayName: Download artifact compose file
             artifact: compose
             path: $(Agent.TempDirectory)
