@@ -10,9 +10,6 @@ stages:
     displayName: Deploy dev
     pool: Default
     environment: dev
-    variables:
-      sshKeyName: id_rsa_xyz_release
-      hostnameWithUser: azureuser@revaturexyz-housing-dev-master.southcentralus.cloudapp.azure.com
 
     strategy:
       runOnce:
@@ -21,7 +18,7 @@ stages:
           - task: DownloadSecureFile@1
             displayName: Download secure file ssh key
             inputs:
-              secureFile: $(sshKeyName)
+              secureFile: id_rsa_xyz_release
 
           - ${{ if parameters.certificate }}:
             - task: DownloadSecureFile@1
@@ -44,9 +41,10 @@ stages:
               set -e
               cd "$(Agent.TempDirectory)"
               cp -v "$(Pipeline.Workspace)/dockerup.yml" .
-              chmod 600 "$(sshKeyName)"
-              ssh -fNi "$(sshKeyName)" -L localhost:2374:/var/run/docker.sock \
-                -o StrictHostKeyChecking=No $(hostnameWithUser)
+              chmod 600 "id_rsa_xyz_release"
+              ssh -fNi "id_rsa_xyz_release" -L localhost:2374:/var/run/docker.sock \
+                -o StrictHostKeyChecking=No \
+                azureuser@revaturexyz-housing-dev-master.southcentralus.cloudapp.azure.com
               export DOCKER_HOST=localhost:2374
               docker stack rm "${{ parameters.stackName }}" || true
               docker network create -d overlay appnet || true
