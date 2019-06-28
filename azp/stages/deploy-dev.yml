@@ -1,0 +1,54 @@
+parameters:
+  stackName: ''
+  certificate: false
+  secretEnvironmentFile: false
+stages:
+- stage: deploy
+  displayName: Deploy
+  jobs:
+  - deployment: dev
+    displayName: Deploy dev
+    pool: Default
+    environment: dev
+    variables:
+      sshKeyName: id_rsa_xyz_release
+      hostnameWithUser: azureuser@revaturexyz-housing-dev-master.southcentralus.cloudapp.azure.com
+
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: DownloadSecureFile@1
+            displayName: Download secure file ssh key
+            inputs:
+              secureFile: $(sshKeyName)
+
+          - ${{ if parameters.certificate }}
+            - task: DownloadSecureFile@1
+              displayName: Download secure file chain (PEM)
+              inputs:
+                secureFile: fullchain.pem
+
+            - task: DownloadSecureFile@1
+              displayName: Download secure file certificate private key
+              inputs:
+                secureFile: privkey.pem
+
+          - ${{ if parameters.secretEnvironmentFile }}
+            - task: DownloadSecureFile@1
+              displayName: Download secure file secret environment
+              inputs:
+                secureFile: secrets.env
+
+          - bash: |
+              set -e
+              cd "$(Agent.TempDirectory)"
+              cp -v "$(Pipeline.Workspace)/dockerup.yml" .
+              chmod 600 "$(sshKeyName)"
+              ssh -fNi "$(sshKeyName)" -L localhost:2374:/var/run/docker.sock \
+                -o StrictHostKeyChecking=No $(hostnameWithUser)
+              export DOCKER_HOST=localhost:2374
+              docker stack rm "${{ parameters.stackName }}" || true
+              docker network create -d overlay appnet || true
+              docker stack deploy -c dockerup.yml "${{ parameters.stackName }}"
+            displayName: Deploy Docker stack

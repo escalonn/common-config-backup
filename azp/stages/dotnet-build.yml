@@ -1,0 +1,23 @@
+stages:
+- stage: build
+  displayName: Build
+  jobs:
+  - job: dotnet
+    displayName: Build .NET
+    pool: Default
+
+    steps:
+    - template: azp/steps/docker-build.yml
+      parameters:
+        msbuild: true
+
+        postSteps:
+        - task: PublishTestResults@2
+          displayName: Publish test results
+          inputs:
+            testRunner: VSTest
+            testResultsFiles: '*.trx'
+            searchFolder: $(Agent.TempDirectory)/test
+            configuration: Release
+
+        - template: azp/steps/publish-code-coverage.yml

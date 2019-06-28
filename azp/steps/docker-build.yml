@@ -1,0 +1,94 @@
+parameters:
+  msbuild: false
+  postSteps: []
+
+steps:
+- bash: |
+    set -e
+    if [ -z "${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER}" ]; then
+      echo "Build is for branch \"${BUILD_SOURCEBRANCHNAME}\"."
+      case "${BUILD_SOURCEBRANCHNAME}" in
+        master) TAG=latest;;
+        lesser) TAG=edge;;
+        broker) TAG=dev;;
+        *) TAG=null
+      esac
+      GITOPTIONS="-Dsonar.branch.name=${BUILD_SOURCEBRANCHNAME}"
+    else
+      echo "Build is for PR ${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER}"
+      echo "PR source branch is \"${SYSTEM_PULLREQUEST_SOURCEBRANCH}\""
+      echo "PR target branch is \"${SYSTEM_PULLREQUEST_TARGETBRANCH}\""
+      TAG=$(echo "${SYSTEM_PULLREQUEST_SOURCEBRANCH}" | sed 's/[^0-9].*$//')
+      case "${SYSTEM_PULLREQUEST_TARGETBRANCH}" in
+        broker|lesser|master)
+          if [ -z "$TAG" ]; then
+            echo "ERROR Bad branch name." >&2
+            exit 1
+          fi
+        ;;
+        *)
+          TAG=null
+      esac
+      GITOPTIONS="-Dsonar.pullrequest.key=${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER} \
+        -Dsonar.pullrequest.provider=github \
+        -Dsonar.pullrequest.base=${SYSTEM_PULLREQUEST_TARGETBRANCH} \
+        -Dsonar.pullrequest.branch=${SYSTEM_PULLREQUEST_SOURCEBRANCH} \
+        -Dsonar.pullrequest.github.repository=${BUILD_REPOSITORY_NAME}"
+    fi
+    if [ "${MSBUILD}" = "true" ]; then
+      GITOPTIONS=${GITOPTIONS//-D//d:}
+    fi
+    echo "$(Build.Repository.Name):$(Build.BuildNumber)" > $(Agent.TempDirectory)/image-names
+    echo "$(Build.Repository.Name):${TAG}" >> $(Agent.TempDirectory)/image-names
+    echo "Setting tag \"${TAG}\"."
+    echo "Setting extra Sonar Scanner options \"${GITOPTIONS}\"."
+    echo "##vso[task.setvariable variable=Docker.Tag]${TAG}"
+    echo "##vso[task.setvariable variable=SonarCloud.GitOptions]${GITOPTIONS}"
+  env:
+    MSBUILD: ${{ parameters.msbuild }}
+  displayName: Set Docker image tag and Sonar Scanner options
+
+- task: Docker@1
+  displayName: Build image
+  inputs:
+    containerregistrytype: Container Registry
+    command: build
+    dockerFile: dockerfile-ci
+    imageName: $(Build.Repository.Name):$(Build.BuildNumber)
+    arguments:
+      --build-arg SONAR_TOKEN=$(SonarCloud.Token)
+      --build-arg SONAR_GITOPTIONS="$(SonarCloud.GitOptions)"
+      -t $(Build.Repository.Name):$(Docker.Tag)
+
+- task: Docker@1
+  displayName: Push image
+  condition: and(
+    succeeded(),
+    eq(variables['Build.SourceBranch'], 'refs/heads/broker'),
+    ne(variables['Build.Reason'], 'PullRequest'))
+  inputs:
+    containerregistrytype: Container Registry
+    dockerRegistryEndpoint: docker-revaturexyz
+    command: push
+    pushMultipleImages: true
+    imageNamesPath: $(Agent.TempDirectory)/image-names
+
+- publish: dockerup.yml
+  artifact: compose
+
+- bash: docker run --rm -u $(id -u):$(id -g)
+    -v "$(Agent.TempDirectory)":/app/tmp
+    $(Build.Repository.Name):$(Docker.Tag)
+    sh -c 'cp -rv /app/artifacts/. /app/tmp'
+  displayName: Copy artifacts from Docker image
+
+- ${{ parameters.postSteps }}
+
+- bash: |
+    set -e -o pipefail
+    PERCENTAGE=$(df / | grep / | awk '{ print $5}' | sed 's/%//g')
+    echo "Disk space ${PERCENTAGE}%"
+    if [ "$(df / | grep / | awk '{ print $5}' | sed 's/%//g')" -gt 90 ]; then
+      docker system prune -af --volumes
+    fi
+  displayName: Cleanup Docker data if agent disk usage >90%

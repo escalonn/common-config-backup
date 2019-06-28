@@ -1,0 +1,53 @@
+parameters:
+  npmPublish: false
+  libraryPackageName: ''
+stages:
+- stage: build
+  displayName: Build
+  jobs:
+  - job: ng
+    displayName: Build Angular
+    pool: Default
+
+    steps:
+    - ${{ if parameters.npmPublish }}
+      - bash: |
+          set -e
+          PUBLISHED_VERSION=$(npm view "${PACKAGE_NAME}" version) || { echo "Not published yet."; exit 0; }
+          echo "Published ${PACKAGE_NAME} version is ${PUBLISHED_VERSION}"
+          PACKAGE_DIR=$(System.DefaultWorkingDirectory)/projects/${PACKAGE_NAME//@}
+          LOCAL_VERSION=$(node -p "JSON.parse(require('fs').readFileSync('${PACKAGE_DIR}/package.json')).version")
+          echo "Local ${PACKAGE_NAME} version is ${LOCAL_VERSION}"
+          mkdir npm-check
+          cd npm-check
+          npm install -s compare-versions
+          RESULT=$(node -p "require('compare-versions')('${LOCAL_VERSION}', '${PUBLISHED_VERSION}');")
+          if [ "${RESULT}" -le 0 ]; then
+            echo "ERROR NPM publish will fail. Must increment the package version." >&2
+            exit 1
+          fi
+        displayName: Check local package version is greater than published version
+        env:
+          PACKAGE_NAME: ${{ parameters.libraryPackageName }}
+        workingDirectory: $(Agent.TempDirectory)
+
+    - template: azp/steps/docker-build.yml
+      parameters:
+        msbuild: false
+
+        postSteps:
+        - ${{ if parameters.npmPublish }}
+          - task: Npm@1
+            displayName: Publish npm package
+            condition: and(
+              succeeded(),
+              eq(variables['Build.SourceBranch'], 'refs/heads/broker'),
+              ne(variables['Build.Reason'], 'PullRequest'))
+            inputs:
+              command: publish
+              workingDir: $(Agent.TempDirectory)/lib
+              publishEndpoint: npm-revaturexyz
+
+        - template: azp/steps/publish-unit-and-e2e-tests.yml
+
+        - template: azp/steps/publish-code-coverage.yml

@@ -1,0 +1,12 @@
+steps:
+- task: PublishTestResults@2
+  displayName: Publish unit test results
+  inputs:
+    searchFolder: $(Agent.TempDirectory)/test/unit
+    testRunTitle: Unit tests
+
+- task: PublishTestResults@2
+  displayName: Publish end-to-end test results
+  inputs:
+    searchFolder: $(Agent.TempDirectory)/test/e2e
+    testRunTitle: End-to-end tests
