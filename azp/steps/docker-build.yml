@@ -74,6 +74,7 @@ steps:
     imageNamesPath: $(Agent.TempDirectory)/image-names
 
 - publish: dockerup.yml
+  displayName: Publish artifact compose file
   artifact: compose
 
 - bash: docker run --rm -u $(id -u):$(id -g)

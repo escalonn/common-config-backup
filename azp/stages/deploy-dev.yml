@@ -15,9 +15,6 @@ stages:
       runOnce:
         deploy:
           steps:
-          - download: current
-            artifact: compose
-
           - task: DownloadSecureFile@1
             displayName: Download secure file ssh key
             inputs:
@@ -40,10 +37,14 @@ stages:
               inputs:
                 secureFile: secrets.env
 
+          - download: current
+            displayName: Download artifact compose file
+            artifact: compose
+            path: $(Agent.TempDirectory)
+
           - bash: |
               set -e
               cd "$(Agent.TempDirectory)"
-              cp -v "$(Pipeline.Workspace)/dockerup.yml" .
               chmod 600 id_rsa_xyz_release
               ssh -fNi id_rsa_xyz_release -L localhost:2374:/var/run/docker.sock \
                 -o StrictHostKeyChecking=No \
