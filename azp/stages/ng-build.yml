@@ -31,7 +31,7 @@ stages:
           PACKAGE_NAME: ${{ parameters.libraryPackageName }}
         workingDirectory: $(Agent.TempDirectory)
 
-    - template: azp/steps/docker-build.yml
+    - template: ../steps/docker-build.yml
       parameters:
         msbuild: false
 
@@ -48,6 +48,6 @@ stages:
               workingDir: $(Agent.TempDirectory)/lib
               publishEndpoint: npm-revaturexyz
 
-        - template: azp/steps/publish-unit-and-e2e-tests.yml
+        - template: ../steps/publish-unit-and-e2e-tests.yml
 
-        - template: azp/steps/publish-code-coverage.yml
+        - template: ../steps/publish-code-coverage.yml

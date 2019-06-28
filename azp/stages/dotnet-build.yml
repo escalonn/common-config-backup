@@ -7,7 +7,7 @@ stages:
     pool: Default
 
     steps:
-    - template: azp/steps/docker-build.yml
+    - template: ../steps/docker-build.yml
       parameters:
         msbuild: true
 
@@ -20,4 +20,4 @@ stages:
             searchFolder: $(Agent.TempDirectory)/test
             configuration: Release
 
-        - template: azp/steps/publish-code-coverage.yml
+        - template: ../steps/publish-code-coverage.yml
