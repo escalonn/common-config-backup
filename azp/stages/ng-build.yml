@@ -10,7 +10,7 @@ stages:
     pool: Default
 
     steps:
-    - ${{ if parameters.npmPublish }}
+    - ${{ if parameters.npmPublish }}:
       - bash: |
           set -e
           PUBLISHED_VERSION=$(npm view "${PACKAGE_NAME}" version) || { echo "Not published yet."; exit 0; }
@@ -36,7 +36,7 @@ stages:
         msbuild: false
 
         postSteps:
-        - ${{ if parameters.npmPublish }}
+        - ${{ if parameters.npmPublish }}:
           - task: Npm@1
             displayName: Publish npm package
             condition: and(

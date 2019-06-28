@@ -23,7 +23,7 @@ stages:
             inputs:
               secureFile: $(sshKeyName)
 
-          - ${{ if parameters.certificate }}
+          - ${{ if parameters.certificate }}:
             - task: DownloadSecureFile@1
               displayName: Download secure file chain (PEM)
               inputs:
@@ -34,7 +34,7 @@ stages:
               inputs:
                 secureFile: privkey.pem
 
-          - ${{ if parameters.secretEnvironmentFile }}
+          - ${{ if parameters.secretEnvironmentFile }}:
             - task: DownloadSecureFile@1
               displayName: Download secure file secret environment
               inputs:
