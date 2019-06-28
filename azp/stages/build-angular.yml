@@ -43,8 +43,8 @@ stages:
             displayName: Publish npm package
             condition: and(
               succeeded(),
-              eq(variables.Build.SourceBranch, 'refs/heads/broker'),
-              ne(variables.Build.Reason, 'PullRequest'))
+              eq(variables['Build.SourceBranch'], 'refs/heads/broker'),
+              ne(variables['Build.Reason'], 'PullRequest'))
             inputs:
               command: publish
               workingDir: $(Agent.TempDirectory)/lib
