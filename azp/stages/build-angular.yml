@@ -4,7 +4,7 @@ parameters:
 stages:
 - stage: build
   jobs:
-  - job: build-angular
+  - job: build_angular
     pool: Default
 
     steps:

@@ -5,7 +5,7 @@ parameters:
 stages:
 - stage: deploy
   jobs:
-  - deployment: deploy-dev
+  - deployment: deploy_dev
     pool: Default
     environment: dev
 

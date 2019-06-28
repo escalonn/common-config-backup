@@ -1,7 +1,7 @@
 stages:
 - stage: build
   jobs:
-  - job: build-dotnet
+  - job: build_dotnet
     pool: Default
 
     steps:
