@@ -1,7 +1,7 @@
 parameters:
   stackName: ''
-  certificate: false
-  secretEnvironmentFile: false
+  certificate: 'false'
+  secretEnvironmentFile: 'false'
 stages:
 - stage: deploy
   condition: and(
@@ -22,7 +22,7 @@ stages:
             inputs:
               secureFile: id_rsa_xyz_release
 
-          - ${{ if parameters.certificate }}:
+          - ${{ if eq(parameters.certificate, 'true') }}:
             - task: DownloadSecureFile@1
               displayName: Download secure file chain (PEM)
               inputs:
@@ -33,7 +33,7 @@ stages:
               inputs:
                 secureFile: privkey.pem
 
-          - ${{ if parameters.secretEnvironmentFile }}:
+          - ${{ if eq(parameters.secretEnvironmentFile, 'true') }}:
             - task: DownloadSecureFile@1
               displayName: Download secure file secret environment
               inputs:
