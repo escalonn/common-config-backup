@@ -4,10 +4,8 @@ parameters:
   secretEnvironmentFile: false
 stages:
 - stage: deploy
-  displayName: Deploy
   jobs:
-  - deployment: dev
-    displayName: Deploy dev
+  - deployment: deploy-dev
     pool: Default
     environment: dev
 

@@ -3,10 +3,8 @@ parameters:
   libraryPackageName: ''
 stages:
 - stage: build
-  displayName: Build
   jobs:
-  - job: ng
-    displayName: Build Angular
+  - job: build-angular
     pool: Default
 
     steps:

@@ -1,9 +1,7 @@
 stages:
 - stage: build
-  displayName: Build
   jobs:
-  - job: dotnet
-    displayName: Build .NET
+  - job: build-dotnet
     pool: Default
 
     steps:
