@@ -29,11 +29,11 @@ steps:
         *)
           TAG=null
       esac
-      GITOPTIONS="-Dsonar.pullrequest.key=${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER} \
-        -Dsonar.pullrequest.provider=github \
-        -Dsonar.pullrequest.base=${SYSTEM_PULLREQUEST_TARGETBRANCH} \
-        -Dsonar.pullrequest.branch=${SYSTEM_PULLREQUEST_SOURCEBRANCH} \
-        -Dsonar.pullrequest.github.repository=${BUILD_REPOSITORY_NAME}"
+      GITOPTIONS="-Dsonar.pullrequest.key=${SYSTEM_PULLREQUEST_PULLREQUESTNUMBER}"
+      GITOPTIONS+=" -Dsonar.pullrequest.provider=github"
+      GITOPTIONS+=" -Dsonar.pullrequest.base=${SYSTEM_PULLREQUEST_TARGETBRANCH}"
+      GITOPTIONS+=" -Dsonar.pullrequest.branch=${SYSTEM_PULLREQUEST_SOURCEBRANCH}"
+      GITOPTIONS+=" -Dsonar.pullrequest.github.repository=${BUILD_REPOSITORY_NAME}"
     fi
     if [ "${MSBUILD}" = "true" ]; then
       GITOPTIONS=${GITOPTIONS//-D//d:}
