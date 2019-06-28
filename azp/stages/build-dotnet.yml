@@ -8,6 +8,7 @@ stages:
     - template: ../steps/docker-build.yml
       parameters:
         msbuild: true
+        push: true
 
         postSteps:
         - task: PublishTestResults@2

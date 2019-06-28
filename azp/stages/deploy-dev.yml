@@ -1,13 +1,13 @@
 parameters:
   stackName: ''
-  certificate: 'false'
-  secretEnvironmentFile: 'false'
+  certificate: false
+  secretEnvironmentFile: false
 stages:
 - stage: deploy
   condition: and(
     succeeded(),
-    eq(variables['Build.SourceBranch'], 'refs/heads/broker'),
-    ne(variables['Build.Reason'], 'PullRequest'))
+    eq(variables.Build.SourceBranch, 'refs/heads/broker'),
+    ne(variables.Build.Reason, 'PullRequest'))
   jobs:
   - deployment: deploy_dev
     pool: Default
