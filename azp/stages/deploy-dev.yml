@@ -35,20 +35,20 @@ stages:
               inputs:
                 secureFile: secrets.env
 
-          - task: DownloadPipelineArtifact@2
+          - download: current
             displayName: Download artifact compose file
             artifact: compose
-            path: $(Agent.TempDirectory)
 
           - bash: |
               set -e
               cd "$(Agent.TempDirectory)"
+              cp -v "$(Pipeline.Workspace)/compose/dockerup.yml" .
               chmod 600 id_rsa_xyz_release
               ssh -fNi id_rsa_xyz_release -L localhost:2374:/var/run/docker.sock \
                 -o StrictHostKeyChecking=No \
                 azureuser@revaturexyz-housing-dev-master.southcentralus.cloudapp.azure.com
               export DOCKER_HOST=localhost:2374
               docker stack rm "${{ parameters.stackName }}" || true
-              docker network create -d overlay appnet || true
+              docker network create -d overlay appnet 2>/dev/null || true
               docker stack deploy -c dockerup.yml "${{ parameters.stackName }}"
             displayName: Deploy Docker stack
